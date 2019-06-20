@@ -1,0 +1,232 @@
+############################################
+## loop submit command  			##
+## Andrew Zerwick       			##
+## 6/11/2019	        			##
+## Initial Run: 3 Ancestries 			##
+## Final Goal: User Defined Ancestries	##
+############################################
+
+xd<-getwd()
+setwd(paste(xd,"/Research",sep=""))
+)
+rm(list=ls(all=TRUE))
+#install.packages('gtools')
+library(gtools)
+install.packages('RcppAlgos')
+#the library RcppAlgos has the premuation function that's needed
+library(RcppAlgos)
+
+#### example of how to create many files  to submit at once. Try to submit just a few files the first time to make sure you are submitting the jobs correctly.  ####
+
+#### NOTE! the original R code parameters
+
+## create folder called "loop" to store your looped output ##
+## in your own folder ##
+mkdir("loop")
+
+
+
+
+###########  create R and sh scripts to submit  ############
+## run in R ##
+
+########  sim parameters loop  ##########
+## parameters that you want to loop over ##
+## always check your paste code ##
+
+#How many ancestries are being used for the simulations
+num_anc <- 3
+
+
+
+
+#Populations we want to loop over 
+### I.e. We need a data frame of all possible populations for however many ancestries
+
+#######################
+### Audreys Code ###
+###pop_names_loop<-data.frame(pop1="AFR", pop2=c("AMR", "EAS","FIN","OTH","SAS", "NFE"))
+#######################
+
+#3 Ancestry
+
+##### Populations: AFR, EAS, SAS, EUR, NAM
+ancestries <- c("afr", "eas", "sas", "eur", "nam")
+pop_names_loop <- matrix(t(combn(ancestries,num_anc)), ncol=num_anc) 	#USER FILLS IN HOW MANY ANCESTRIES WE USE#############
+##################### AT END CHANGE 2 TO N to generalize
+
+#For loop do do it with all ancestries
+
+
+##### Final Goal: I want it to make a matrix of 1s and 0s for each population 
+#####	so that it pulls a 1 is we use that pop, 0 means we don't use that pop
+
+#######################
+### How many Simulations to be Made: 
+### Initially we've always done 1000, but this could change one day
+### Audrey's Code ###
+### N_pop1_loop<-c(1000,5000,9000) 
+#######################
+
+
+#######################
+### What are the intervals for creating the simulations
+#######################
+### Audrey's Code ###
+### pi_start_loop<-rbind(c(.5,.5), c(.9,.1), c(.1,.9))  ##
+#######################
+
+int_START <- c(0,0.01,0.05,0.1,0.25)
+int_END <- c(0.015,0.055,0.105,0.255,0.505)
+
+int_ALL <- data.frame()
+
+#For loops to make all possible permutations of the intervals
+####3 Ancestries 
+
+i<-1
+j<-2
+
+for(i in 1:4){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:5){
+    anc2_int_start <- int_START[j]
+    anc2_int_end <- int_END[j]
+    
+    anc3_int_start <- 1 - int_END[i]-int_END[j]
+    anc3_int_end <- 1 - int_START[i]-int_START[j]
+
+    #IF A == B
+#    if(anc1_int_start == anc2_int_start){
+      
+	anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start)
+	anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end)
+	ps <- permuteGeneral( anc_all_start,3)
+	ps <- unique(ps)
+
+	pe <- permuteGeneral( anc_all_end, 3)
+	pe <- unique(pe)
+
+    	perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2], ps[,3], pe[,3] )
+	
+
+#    }#End IF
+#    #IF A =/= B
+#    else{
+
+#    anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start)
+#    anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end)
+    
+#    ps <- permutations(3,3,anc_all_start)
+#   pe <- permutations(3,3, anc_all_end)
+#    } # End ELSE
+    
+    perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2], ps[,3], pe[,3] )
+    
+    int_ALL <- rbind(int_ALL, perms) 
+    
+  } #End j Loop
+} #End i Loop
+
+nrow(int_ALL)
+
+# What this needs to do is connect the start with the end and the 1 - start/end
+### and make a matrix of all the different combinations of those.
+
+#Goal: Make a matrix of all the different possible intervals with their 
+## combinations for 2,3 ancestries.
+####  --> To do: create a way that this does it generally
+####	----> I don't know if this is possible....
+
+###############################################################################################
+## START HERE 6/20/2019
+## Goals/Objectives
+#### Run Audrey's Loop Submit Code and Understand what goes on in the paste section
+###### To 'Understand' means to know how the R code in the file name sets values 
+
+
+#### idea: find a way to pull information from the filename? If we have the information that we need
+##### In the file name, then we can then set the variables based off that information
+
+
+#### Investigate Source and Write functions, or see if there is a way with those functions to have it
+##### Write a _______.R function where embedded in the information there, variables are already 
+###### declared and initiallized....?
+
+
+
+#### In the for loop it has the population combination and the intervals for that....
+##### So have it write code that initializes the variables to be the values we have already set...?
+######i.e. it writes code that anc1_intSTART = int_all[i,1] 
+
+
+### Stepping through the Loop Submit 
+
+p<-1
+j<-10
+
+pop_names_loop[p,] # afr eas sas
+int_ALL[j,] #  0 0.015 0.05 0.105 0.88 0.95
+
+
+#What I want....
+#A matrix of pop1 | intstart | intend | pop2 | intstart | intend | pop3 | intstart | intend
+##So that when we loop through we create a file that is 
+###e.g. AFR_0.0_0.015_EAS_0.05_0.105_SAS_0.88_0.95
+
+pnl <- matrix(rep(pop_names_loop[p,], each = 72),ncol=3)
+dim(pnl)
+head(pnl)
+eff<-matrix(nrow = dim(pnl)[1], ncol = (3*dim(pnl)[2]))
+dim(eff)
+n<-1
+
+#This is a matrix of all the ancestries and their respective interval values
+##Named eff because EFF this. (it's how I currently feel)
+###It SHOULD work for any number of ancestries chosen.
+
+for(n in 1:dim(pnl)[2]){
+eff[,(3*n-2)] <- pnl[,n] 
+eff[,(3*n-1)] <- int_ALL[,(2*n-1)] 
+eff[,(3*n)] <- int_ALL[,(2*n)]
+}
+
+#eff <- cbind(pnl[,1], int_ALL[,1], int_ALL[,2], pnl[,2], int_ALL[,3], int_ALL[,4], pnl[,3], int_ALL[,5], int_ALL[,6] )
+
+
+#This makes a file extension for whatever row we're on.  There will be a for loop wrapped around the 
+## following where the jth row of that eff matrix as it should be above...
+
+
+for(i in 1:dim(eff)[1]){
+tmp <- paste(eff[i,],collapse="_")
+
+
+write( 
+	c( paste0( "ancestry1 =",eff[i,1],"_MAF"), paste0("anc1_intSTART = ",eff[i,2]), paste0("anc1_intEND = ", eff[i,3])
+		) #End C
+	) #End Write
+} End i Loop
+
+write(
+c(
+paste(
+"Ntot = ", Ntot, sep=""), 
+paste("N_pop1 = ", N_pop1, sep=""), 
+paste("MAF_thresh = ", MAF_thresh, sep=""), 
+paste("pi_start = c(", paste(t(pi_start), collapse=","), ")", sep=""),
+paste("pop_names = c('", paste(t(pop_names_loop[i,]), collapse="', '"), "')", sep=""),
+paste("threshold = ", threshold, sep="")), 
+file=paste("/home/projects/mixtures/loop/", tmp, ".R", sep=""))
+
+
+
+
+for(p in 1:nrow(pop_names_loop)){ #Loop over the ancestry
+for(j in 1:length(int_ALL)){ # Loop over all of the interval values
+
+} #End p Loop
+} #End j Loop
+
+
