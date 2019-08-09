@@ -1,0 +1,184 @@
+
+# "snpsampgen.R" contains a function that takes a new set of 100,000 SNP and uses those to simulate a sample population of size k.
+
+# "SLSQPmixturesR.R" contains a function that feeds this sample population matrix into the SLSQP algorithm in R.
+
+# "HA_script.py" contains a function that feeds this sample population matrix into the SLSQP algorithm in Python.
+
+# At the end of every iteration of this loop will be printed the estimated pi-values, number of iterations, and time for both versions of SLSQP.
+
+# The source scripts needed to execute this code can be found at https://github.com/GregoryMatesi/SimulationDesign
+
+# Thanks to Ian for "snpsampgen.R" and "SLSQPmixturesR.R." And to Jordan for "HA_script.py."
+
+#OLD DATA
+#Read in the Genetic data
+#total.c <- read.table("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Greg/5ancfinalsimdat.txt")
+
+#NEW DATA
+total.c <- read.table("/nfs/storage/math/gross-s2/projects/mixtures/genomic_resources/referencedata/reference1000GNAM.txt")
+colnames(total.c) <- c("SNP","CHR","A1","A2","eur_MAF","afr_MAF","sas_MAF","eas_MAF","nam_MAF")
+
+library("nloptr")
+library("reticulate")         # Reticulate is already installed on the server. It links Python with R.
+
+source("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Greg/snpsampgen.R")
+source("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Greg/SLSQPmixturesR.R")
+source_python("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Greg/HA_script.py")    # source_Python() from the "reticulate" package.
+
+#To see how long the simulation takes
+START <- Sys.time()
+
+#Make initialized values into a list
+anc_initialize <- c( eurfrac_start, eurfrac_end, 
+afrfrac_start, afrfrac_end, 
+sasfrac_start, sasfrac_end, 
+easfrac_start, easfrac_end, 
+namfrac_start, namfrac_end)
+
+#Determine which ancestries are being used
+##Take the end intervals and see which ones are 0
+endints <- which(c(2,4,6,8,10) %in% which(anc_initialize !=0))
+
+#TeamMember for which file it's saving the simulations into
+teamMember <- "Andrew"
+
+#Initial Guess for SLSQP
+j <- 5
+k <- 5
+guess1 <- 1/j                          # Generally leave this alone for now.           
+
+output <- c()                          # Initialize an empty output matrix.
+
+
+#Need a paste of which ancestries are used and their intervals, comma separated
+##i.e. "AFR", 0.000, 0.015, "EAS", 0.000, 0.015, etc
+anc_names <- c( "EUR", "AFR", "SAS", "EAS", "NAM")
+anc_fn <- c()
+anc_colnam <- c()
+anc_file <- paste(anc_names[endints], collapse="_")
+
+#Loop that makes the file path for the specific ancestries we're using
+for(p in endints){
+temp <- c()
+temp_col <- c()
+temp <- c(temp, anc_names[p])
+temp <- c(temp, anc_initialize[(2*p-1)])
+temp <- c(temp, anc_initialize[(2*p)])
+temp_col <- c(temp_col, anc_names[p])
+temp_col <- c(temp_col, paste0(anc_names[p], "_start"))
+temp_col <- c(temp_col, paste0(anc_names[p], "_end"))
+anc_fn <- c(anc_fn,temp)
+anc_colnam <- c(anc_colnam, temp_col)
+} #End p loop
+
+ancestry_file_name <- paste(anc_fn, collapse=",")
+
+
+#Run zloop_submit2 so that we get the variables in  R	
+
+
+f_n <- c("AFR", afrfrac_start , afrfrac_end , "EAS", easfrac_start , easfrac_end , "SAS", sasfrac_start , sasfrac_end , "EUR", eurfrac_start , eurfrac_end , "NAM", namfrac_start , namfrac_end )
+file_name <- paste(f_n, collapse = "_")
+
+#Start Simulations
+for (i in 1:numberSims){
+
+#Use those that are not 0's to determine which _frac do we use
+##i.e. which ancestry gets a runif and then we need the last one to be 
+### 1 - the previous
+
+eurfrac <- 0
+afrfrac <- 0
+sasfrac <- 0
+easfrac <- 0
+namfrac <- 0
+
+#This uses the values in the anc_initialize to make a uniform distribution
+
+#Do while afr + eas + sas + eur + nam != 1
+while( (eurfrac + afrfrac + sasfrac + easfrac + namfrac) != 1 | 
+		((eurfrac < 0) | ( afrfrac < 0) | ( sasfrac < 0) | ( easfrac < 0) | (namfrac < 0)) ){
+
+##For loop looping through all the different values in endints 
+	for(o in endints){
+	#If statement 
+	if(o != max(endints)){ #Make uniform distributions
+		if(o == 1){eurfrac <- runif(1, anc_initialize[1], anc_initialize[2]) }
+		if(o == 2){afrfrac <- runif(1, anc_initialize[3], anc_initialize[4]) }
+		if(o == 3){sasfrac <- runif(1, anc_initialize[5], anc_initialize[6]) }
+		if(o == 4){easfrac <- runif(1, anc_initialize[7], anc_initialize[8]) }
+		} # End if checking for max endints
+	else{
+		if(max(endints) == 1){eurfrac <- 1}
+		if(max(endints) == 2){afrfrac <- 1 - eurfrac}
+		if(max(endints) == 3){sasfrac <- 1 - eurfrac - afrfrac}
+		if(max(endints) == 4){easfrac <- 1 - eurfrac - afrfrac - sasfrac}
+		if(max(endints) == 5){namfrac <- 1 - eurfrac - afrfrac - sasfrac - easfrac}
+		} #End Else
+	} # End o loop
+} #End While loop checking if the 5 add up to 1
+
+
+    
+seed <- Sys.time() # Save the seed used in the uniform draw and for sampling population.
+    
+    
+####################################################
+### Below is the code to run the simulations     ###
+###  Before we can run this code though, we      ###
+### need to take the initialized values above    ###
+### create a path to make afrfrac etc.           ###
+####################################################
+
+
+#Simulation of Multinom distribution to create the fake genome      
+    set.seed(seed)
+    A <- snpsampgen(j, "eur_MAF" , "afr_MAF",  "sas_MAF", "eas_MAF", "nam_MAF", eurfrac, afrfrac, sasfrac, easfrac, namfrac, seed)    
+    # Simulating a sample population with a new set of 10,000 SNPs.
+    
+#SLSQP through R
+#Need to Change Python_ -> R_
+    # Calling the SLSQPmixtures function from SLSQPmixturesR.R
+	R_ <- print(SLSQPmixtures(A, k))                              # Returns pi-values, iterations, time.
+
+
+    # Calling the HA function from HA_script.py                      
+    af <- cbind(A$AF)                                                  # Total allele frequency vector.
+    A <- cbind(A$eur_MAF, A$afr_MAF, A$sas_MAF, A$eas_MAF, A$nam_MAF)  # All global populations used.
+    
+    guess <- rbind(guess1, guess1, guess1, guess1, guess1)             # kx1 vector of starting guesses.
+    HA_ <- print(HA(A, af, guess))                                     # Returns pi-values, iterations, time.
+    
+    output <- rbind(output, 
+		c( 	R_[1], R_[2], R_[3], R_[4], R_[5], R_[6], R_[7], 
+			HA_[1], HA_[2], HA_[3], HA_[4], HA_[5], HA_[6], HA_[7], 
+			seed, teamMember, afrfrac, easfrac, sasfrac, eurfrac, namfrac, 
+			eurfrac - as.numeric(R_[1]), afrfrac - as.numeric(R_[2]), sasfrac - as.numeric(R_[3]), 
+			easfrac - as.numeric(R_[4]), namfrac - as.numeric(R_[5]), 
+			eurfrac - as.numeric(HA_[1]), afrfrac - as.numeric(HA_[2]), sasfrac - as.numeric(HA_[3]), 
+			easfrac - as.numeric(HA_[4]), namfrac - as.numeric(HA_[5]), 
+			anc_fn ))
+    print(i)
+    print(Sys.time() - START)
+} # End i Loop for simulations
+
+#ColNames for the output file
+## R.afr is the R SLSQP guess for the ancestry value of afr
+## Python.afr is the python SLSQP guess for the ancestry value of afr
+## True.afr is runif value found for afr
+## Accuracy.R.afr is how accurate the R SLSQP guess was for afr
+## Accuracy.HA.afr is how accurate the python SLSQP guess was for afr
+colnames(output) <- c(
+			"R.eur", "R.afr", "R.sas","R.eas", "R.nam",  "R.iters", "R.time", 
+			"Python.afr", "Python.eas", "Python.sas", "Python.eur", "Python.nam", "Python.iters", "Python.time", 
+			"seed", "Team.memeber", "True.afr", "True.eas", "True.sas", "True.eur", "True.nam", 
+			"accuracy.R.eur", "accuracy.R.afr", "accuracy.R.sas", "accuracy.R.eas", "accuracy.R.nam", 
+			"accuracy.HA.afr", "accuracy.HA.eas", "accuracy.HA.sas", "accuracy.HA.eur", "accuracy.HA.nam", 
+			anc_colnam ) 
+
+write.csv(output, file = paste0("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/", teamMember, "/Simulations/Results/", numAnc, "_anc/", anc_file,  "/", file_name ,  ".csv"))
+
+
+END <- Sys.time()
+END - START
