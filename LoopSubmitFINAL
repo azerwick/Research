@@ -1,0 +1,291 @@
+#Loop Submit Clean Start
+
+#install.packages('gtools')
+library(gtools)
+#install.packages('RcppAlgos')
+#the library RcppAlgos has the premuation function that's needed
+library(RcppAlgos)
+
+#New working directory for testing
+xd <- getwd()
+setwd(paste0(xd,"/research/Sims"))
+newwd <- getwd()
+
+######## PARAMETERS TO BE SET BY THE USER
+#How many ancestries are being used for the simulations
+num_anc <- 2
+
+#How many simulations are being made?
+numberSims <- 5
+
+#Which Team Member is creating the simulation Data
+teamMember <- "Andrew"
+
+########
+
+
+##### Populations: AFR, EAS, SAS, EUR, NAM
+ancestries <- c("EUR", "AFR", "EAS", "SAS", "NAM")
+pop_names_loop <- matrix(t(combn(ancestries,num_anc)), ncol=num_anc) 	#USER FILLS IN HOW MANY ANCESTRIES WE USE#############
+pnl <- pop_names_loop
+
+#Start looping over the different ancestry combinations
+for( n in 1:dim(pop_names_loop)[1]){
+
+
+#####Interval Values
+int_START <- c(0,0.01,0.05,0.1,0.25)
+int_END <- c(0.015,0.055,0.105,0.255,0.505)
+
+int_ALL <- data.frame()
+#colnames(int_ALL) <- c(paste0(pnl[n,1], "_start"), paste0(pnl[n,1], "_end"), paste0(pnl[n,2], "_start"), paste0(pnl[n,2], "_end"), paste0(pnl[n,3], "_start"), paste0(pnl[n,3], "_end"))
+
+#1 Ancestry
+if(num_anc == 1){
+anc1_int_START <- 0
+anc1_int_END <- 1
+} # End 1 Ancestry IF
+
+##################################
+
+#2 Ancestries
+if(num_anc == 2){
+
+for(i in 1:5){
+#Initialize starts and ends
+anc1_int_start <- int_START[i]
+anc1_int_end <- int_END[i]
+
+anc2_int_start <- 1 - int_END[i]
+anc2_int_end <- 1 - int_START[i]
+
+#Combine in one vector
+anc_all_start <- c(anc1_int_start, anc2_int_start)
+anc_all_end <- c(anc1_int_end, anc2_int_end)
+
+#Do Permutations
+ps <- permuteGeneral( anc_all_start,2)
+ps <- unique(ps)
+
+pe <- permuteGeneral( anc_all_end, 2)
+pe <- unique(pe)
+
+perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2])
+
+int_ALL <- rbind(int_ALL, perms)
+
+} # End i loop
+
+} # End 2 Ancestry IF
+
+###################################
+
+#3 Ancestries --> think of a way to generalize? or just 5 if's?
+if(num_anc == 3){
+for(i in 1:4){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:5){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+    	anc3_int_start <- 1 - int_END[i]-int_END[j]
+    	anc3_int_end <- 1 - int_START[i]-int_START[j]
+	
+	anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start)
+	anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end)
+	ps <- permuteGeneral( anc_all_start,3)
+	ps <- unique(ps)
+
+	pe <- permuteGeneral( anc_all_end, 3)
+	pe <- unique(pe)
+
+    	perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2], ps[,3], pe[,3] )
+
+	int_ALL <- rbind(int_ALL, perms) 
+		
+	} #End j Loop
+} #End i loop
+
+} #end 3 Ancestry IF
+
+##########################################
+
+#4 Ancestries
+
+if(num_anc == 4){
+
+for(i in 1:3){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:4){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+	for(k in 1:5){
+		anc3_int_start <- int_START[k]
+    		anc3_int_end <- int_END[k]
+    
+    		anc4_int_start <- 1 - int_END[i] - int_END[j] - int_END[k]
+    		anc4_int_end <- 1 - int_START[i] - int_START[j] - int_START[k]
+	
+	
+		anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start, anc4_int_start)
+		anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end, anc4_int_end)
+
+		ps <- permuteGeneral( anc_all_start, 4)
+		ps <- unique(ps)
+
+		pe <- permuteGeneral( anc_all_end, 4)
+		pe <- unique(pe)
+
+    		perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2], ps[,3], pe[,3], ps[,4], pe[,4] )
+
+		int_ALL <- rbind(int_ALL, perms) 
+
+		} #End k loop
+	} #End j Loop
+} #End i loop
+
+} # End 4 Ancestry IF
+
+##########################################
+
+#5 Ancestries
+int_ALL <- data.frame()
+tail(int_ALL)
+sum(int_ALL[5450,])
+if(num_anc == 5){
+
+for(i in 1:2){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:3){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+	for(k in 1:4){
+		anc3_int_start <- int_START[k]
+    		anc3_int_end <- int_END[k]
+    		
+		for(l in 1:5){
+			anc4_int_start <- int_START[l]
+			anc4_int_end <- int_END[l]
+
+			anc5_int_start <- 1 - int_END[i] - int_END[j] - int_END[k] - int_END[l]
+    			anc5_int_end <- 1 - int_START[i] - int_START[j] - int_START[k] - int_START[l]
+	
+	
+			anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start, anc4_int_start, anc5_int_start)
+			anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end, anc4_int_end, anc5_int_end)
+
+			ps <- permuteGeneral( anc_all_start, 5)
+			ps <- unique(ps)
+
+			pe <- permuteGeneral( anc_all_end, 5)
+			pe <- unique(pe)
+
+	    		perms <- cbind( ps[,1], pe[,1], ps[,2], pe[,2], ps[,3], pe[,3], ps[,4], pe[,4], ps[,5], pe[,5] )
+
+			int_ALL <- rbind(int_ALL, perms) 
+			} #End l loop
+		} #End k loop
+	} #End j Loop
+} #End i loop
+
+} # End 5 Ancestry IF
+
+##########################################
+
+
+#Initialize the matrix that will contain ALL ancestries and intervals
+#EUR|start|end|AFR|start|end|EAS|start|end|SAS|start|end|NAM|start|end
+
+final_mat <- as.data.frame(matrix(0, nrow = dim(int_ALL)[1], ncol = 15 ))
+
+
+#Start for loop that will loop through all the possible ancestry combinations
+
+a <- which(ancestries %in% ancestries)
+b <- which(ancestries %in% pnl[n,])
+
+#Final_mat is the matrix that has all 5 ancestries with ALL of the possible intervals
+## from int_ALL. 
+### This is sequenced in such a way that whichever ancestries are being called in 
+#### Pop_names_loop it will put it into the specific columns
+
+
+for(m in 1:5){ #This loop makes the columns into the ancestries
+final_mat[,(3*m-2)] <- rep(ancestries[m], each=dim(int_ALL)[1] )
+} #end m loop
+
+final_mat[,(3*b-1)] <-  int_ALL[, seq(1, by = 2, len = (dim(int_ALL)[2]/2))]
+final_mat[,(3*b)] <- int_ALL[, seq(2, by = 2, len = (dim(int_ALL)[2]/2))]
+
+
+#Start Loop submit code
+###I.e. the code that creates the R files needed for EVERY simulation.
+
+tosubmit <- c()
+
+
+
+#Create a folders to put all the R and SH files into
+anc_line <- paste(pnl[n,], collapse = "_")
+dir.create(paste0(newwd, "/", num_anc, "_anc"))
+dir.create(paste0(newwd,"/", num_anc,  "_anc","/",  anc_line ))
+
+for(i in 1:dim(final_mat)[1]){
+
+tmp <- paste(final_mat[i,], collapse="_")
+
+
+write(
+c(
+paste0("eurfrac_start = ", final_mat[i,11] ),
+paste0("eurfrac_end = ", final_mat[i,12] ),
+paste0("afrfrac_start = ", final_mat[i,2] ),
+paste0("afrfrac_end = ", final_mat[i,3] ),
+paste0("sasfrac_start = ", final_mat[i,8] ),
+paste0("sasfrac_end = ", final_mat[i,9] ),
+paste0("easfrac_start = ", final_mat[i,5] ),
+paste0("easfrac_end = ", final_mat[i,6] ),
+paste0("namfrac_start = ", final_mat[i,14] ),
+paste0("namfrac_end = ", final_mat[i,15] ),
+paste0("numberSims = ", numberSims),
+paste0("teamMember = ",  "'", teamMember, "'" ) ,
+paste0("numAnc = ", num_anc),
+paste0(" source(", "'/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Andrew"
+, "/topofsimulationcode.R') " )
+) #end c() 
+, file = paste0(newwd,"/", num_anc, "_anc" , "/", anc_line,"/", tmp,  ".R") #file location of thew new R file
+) #end initialization write()
+
+
+
+
+cat(
+c(
+#"#$ -cwd;",
+paste0("#$ -o /nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Andrew/Simulations/Results/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".log;"),
+paste0("#$ -e /nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/Andrew/Simulations/Results/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".err;"),
+"#$ -S /bin/bash;",
+paste0("Rscript ", "/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/",teamMember, "/Simulations/LoopSubmit/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".R")
+) #end c()
+, file=paste0(newwd,"/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".sh")
+)#end SH file 
+
+ 
+tosubmit <- c(tosubmit, paste0("/nfs/storage/math/gross-s2/projects/mixtures/team_members/current_team/",teamMember, "/Simulations/LoopSubmit/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".sh")) #end c()
+
+} #End i loop
+
+
+cat(tosubmit, append = TRUE , file = paste0(newwd, "/", num_anc, "_anc" , "/", anc_line, "/tosubmit.txt"))
+
+#write( tosubmit , 
+#file = paste0(newwd, "/", num_anc, "_anc" , "/", anc_line, "/tosubmit.txt"),
+#)#end txt write
+
+
+} #End n loop: Looping the ancestries
