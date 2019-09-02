@@ -1,0 +1,302 @@
+#Loop Submit Clean Start
+
+#install.packages('gtools')
+library('gtools') # - Has all the functions we need
+
+
+#New working directory for testing
+setwd("/nfs/storage/math/gross-s2/projects/mixtures/simulations/loop_submit")
+newwd <- getwd()
+
+
+
+######## PARAMETERS TO BE SET BY THE USER
+#How many ancestries are being used for the simulations
+num_anc <- 3
+
+###Create folder for the number of ancestries R and SH files
+dir.create(paste0(newwd, "/", num_anc,"_anc"))
+
+###Create folder for the number of ancestries Results
+dir.create(paste0("/nfs/storage/math/gross-s2/projects/mixtures/simulations/results/", num_anc,"_anc"))
+
+###How many simulations are being made?
+numberSims <- 5
+
+#Which Team Member is creating the simulation Data
+teamMember <- "Andrew"
+
+########
+
+
+##### Populations: AFR, EAS, SAS, EUR, NAM
+#Here the ancestry combinations are created.
+ancestries <- c("EUR", "AFR", "EAS", "SAS", "NAM")
+pnl <- matrix(t(combn(ancestries,num_anc)), ncol=num_anc) 	#USER FILLS IN HOW MANY ANCESTRIES WE USE#############
+
+#pnl is a matrix of all the different combinations of the ancestries. The intervals below are permuted
+## and each permuation is assigned to one of the ancestries 
+
+#Start looping over the different ancestry combinations
+for( n in 1:dim(pnl)[1]){
+
+
+#####Interval Values
+int_START <- c(0,0.01,0.05,0.1,0.25)
+int_END <- c(0.015,0.055,0.105,0.255,0.505)
+
+#Matrix to store ALL of the intervals for the loop submit.
+
+int_ALL <- data.frame()
+
+
+#Create a matrix of all possible permuations, for the desired number of ancestries:
+permuta <- permutations(num_anc, num_anc, 1:num_anc)
+
+
+#For each of the following IF's they check how many ancestries we're dealing with, via num_anc
+## Inside each of the IF's it initializes variables for the start and end values of the intervals for each of the num_anc ancestries and a 
+### along with a (1 -) interval so that the intervals always sum to 1.
+#### Once it has done that, it matches each interval to the permutation value so that Start and End values match correctly.
+
+#1 Ancestry
+if(num_anc == 1){
+anc1_int_START <- 1
+anc1_int_END <- 1
+
+int_ALL <- cbind(anc1_int_START, anc1_int_END)
+} # End 1 Ancestry IF
+
+##################################
+
+#2 Ancestries
+if(num_anc == 2){
+
+for(i in 1:5){
+#Initialize starts and ends
+anc1_int_start <- int_START[i]
+anc1_int_end <- int_END[i]
+
+anc2_int_start <- 1 - int_END[i]
+anc2_int_end <- 1 - int_START[i]
+
+#Combine in one vector
+anc_all_start <- c(anc1_int_start, anc2_int_start)
+anc_all_end <- c(anc1_int_end, anc2_int_end)
+
+#Do Permutations
+	for(m in 1:dim(permuta)[1]){
+		ps <- anc_all_start[permuta[m,]]
+		pe <- anc_all_end[permuta[m,]]
+		
+		perms <- cbind(ps[1], pe[1], ps[2], pe[2])
+		int_ALL <- rbind(int_ALL, perms)
+		int_ALL <- unique(int_ALL)
+	} #End m loop
+} # End i loop
+
+} # End 2 Ancestry IF
+
+###################################
+
+#3 Ancestries 
+if(num_anc == 3){
+for(i in 1:4){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:5){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+    	anc3_int_start <- 1 - int_END[i]-int_END[j]
+    	anc3_int_end <- 1 - int_START[i]-int_START[j]
+	
+	anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start)
+	anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end)
+	
+	for(m in 1:dim(permuta)[1]){
+			ps <- anc_all_start[permuta[m,]]
+			pe <- anc_all_end[permuta[m,]]
+		
+			perms <- cbind(ps[1], pe[1], ps[2], pe[2], ps[3], pe[3])
+			int_ALL <- rbind(int_ALL, perms)
+			int_ALL <- unique(int_ALL)
+		} #End m loop
+	} #End j Loop
+} #End i loop
+
+} #end 3 Ancestry IF
+
+##########################################
+
+#4 Ancestries
+
+if(num_anc == 4){
+
+for(i in 1:3){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:4){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+	for(k in 1:5){
+		anc3_int_start <- int_START[k]
+    		anc3_int_end <- int_END[k]
+    
+    		anc4_int_start <- 1 - int_END[i] - int_END[j] - int_END[k]
+    		anc4_int_end <- 1 - int_START[i] - int_START[j] - int_START[k]
+	
+	
+		anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start, anc4_int_start)
+		anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end, anc4_int_end)
+
+			for(m in 1:dim(permuta)[1]){
+				ps <- anc_all_start[permuta[m,]]
+				pe <- anc_all_end[permuta[m,]]
+			
+				perms <- cbind(ps[1], pe[1], ps[2], pe[2], ps[3], pe[3], ps[4], pe[4])
+				int_ALL <- rbind(int_ALL, perms)
+				int_ALL <- unique(int_ALL)
+			} #End m loop
+		} #End k loop
+	} #End j Loop
+} #End i loop
+
+} # End 4 Ancestry IF
+
+##########################################
+
+#5 Ancestries
+if(num_anc == 5){
+
+for(i in 1:2){
+  anc1_int_start <- int_START[i]
+  anc1_int_end <- int_END[i]
+  for(j in i:3){
+	anc2_int_start <- int_START[j]
+    	anc2_int_end <- int_END[j]
+    
+	for(k in 1:4){
+		anc3_int_start <- int_START[k]
+    		anc3_int_end <- int_END[k]
+    		
+		for(l in 1:5){
+			anc4_int_start <- int_START[l]
+			anc4_int_end <- int_END[l]
+
+			anc5_int_start <- 1 - int_END[i] - int_END[j] - int_END[k] - int_END[l]
+    			anc5_int_end <- 1 - int_START[i] - int_START[j] - int_START[k] - int_START[l]
+	
+	
+			anc_all_start <- c(anc1_int_start, anc2_int_start, anc3_int_start, anc4_int_start, anc5_int_start)
+			anc_all_end <- c(anc1_int_end, anc2_int_end, anc3_int_end, anc4_int_end, anc5_int_end)
+
+				for(m in 1:dim(permuta)[1]){
+					ps <- anc_all_start[permuta[m,]]
+					pe <- anc_all_end[permuta[m,]]
+			
+					perms <- cbind(ps[1], pe[1], ps[2], pe[2], ps[3], pe[3], ps[4], pe[4], ps[5], pe[5])
+					int_ALL <- rbind(int_ALL, perms)
+					int_ALL <- unique(int_ALL)
+				} #End m loop
+			} #End l loop
+		} #End k loop
+	} #End j Loop
+} #End i loop
+
+} # End 5 Ancestry IF
+
+##########################################
+
+
+#Initialize the matrix that will contain ALL ancestries and intervals
+#EUR|start|end|AFR|start|end|EAS|start|end|SAS|start|end|NAM|start|end
+
+final_mat <- as.data.frame(matrix(0, nrow = dim(int_ALL)[1], ncol = 15 ))
+
+
+#Start for loop that will loop through all the possible ancestry combinations
+
+a <- which(ancestries %in% ancestries)
+b <- which(ancestries %in% pnl[n,])
+
+#Final_mat is the matrix that has all 5 ancestries with ALL of the possible intervals
+## from int_ALL. 
+### This is sequenced in such a way that whichever ancestries are being called in 
+#### Pop_names_loop it will put it into the specific columns
+
+
+for(m in 1:5){ #This loop makes the columns into the ancestries
+final_mat[,(3*m-2)] <- rep(ancestries[m], each=dim(int_ALL)[1] )
+} #end m loop
+
+final_mat[,(3*b-1)] <-  int_ALL[, seq(1, by = 2, len = (dim(int_ALL)[2]/2))]
+final_mat[,(3*b)] <- int_ALL[, seq(2, by = 2, len = (dim(int_ALL)[2]/2))]
+
+
+#Start Loop submit code
+###I.e. the code that creates the R files needed for EVERY simulation.
+
+#tosubmit is the txt file that is submitted to the cluster to run all the jobs in it.
+tosubmit <- c()
+
+#Create a folders to put all the R and SH files into
+anc_line <- paste(pnl[n,], collapse = "_")
+
+#Create Loop_Submit Folder for the current ancestry combination
+dir.create(paste0("/nfs/storage/math/gross-s2/projects/mixtures/simulations/loop_submit/", num_anc,  "_anc","/",  anc_line ))
+
+
+
+#Create Results folder for the current ancestry combination
+dir.create(paste0("/nfs/storage/math/gross-s2/projects/mixtures/simulations/results/", num_anc,  "_anc","/",  anc_line ))
+
+
+for(i in 1:dim(final_mat)[1]){
+
+tmp <- paste(final_mat[i,], collapse="_")
+
+
+write(
+c(
+paste0("eurfrac_start = ", final_mat[i,11] ),
+paste0("eurfrac_end = ", final_mat[i,12] ),
+paste0("afrfrac_start = ", final_mat[i,2] ),
+paste0("afrfrac_end = ", final_mat[i,3] ),
+paste0("sasfrac_start = ", final_mat[i,8] ),
+paste0("sasfrac_end = ", final_mat[i,9] ),
+paste0("easfrac_start = ", final_mat[i,5] ),
+paste0("easfrac_end = ", final_mat[i,6] ),
+paste0("namfrac_start = ", final_mat[i,14] ),
+paste0("namfrac_end = ", final_mat[i,15] ),
+paste0("numberSims = ", numberSims),
+paste0("teamMember = ",  "'", teamMember, "'" ) ,
+paste0("numAnc = ", num_anc),
+paste0(" source(", "'/nfs/storage/math/gross-s2/projects/mixtures/simulations/topofsimulationcode.R)'")
+
+) #end c() 
+, file = paste0(newwd,"/", num_anc, "_anc" , "/", anc_line,"/", tmp,  ".R") #file location of thew new R file
+) #end initialization write()
+
+
+write(
+c(
+"#$ -cwd",
+paste0("#$ -o /nfs/storage/math/gross-s2/projects/mixtures/simulations/results/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".log"),
+paste0("#$ -e /nfs/storage/math/gross-s2/projects/mixtures/simulations/results/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".err"),
+"#$ -S /bin/bash",
+paste0("Rscript ", "/nfs/storage/math/gross-s2/projects/mixtures/simulations/loop_submit/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".R")
+) #end c()
+, file=paste0(newwd,"/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".sh")
+)#end SH file 
+
+ 
+tosubmit <- c(tosubmit, paste0("/nfs/storage/math/gross-s2/projects/mixtures/simulations/loop_submit/", num_anc, "_anc" , "/", anc_line,"/", tmp, ".sh")) #end c()
+
+} #End i loop
+
+
+write(tosubmit, file = paste0("/nfs/storage/math/gross-s2/projects/mixtures/simulations/loop_submit/", num_anc, "_anc" , "/", anc_line, "/tosubmit.txt"))
+
+} #End n loop: Looping the ancestries
